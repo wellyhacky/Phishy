@@ -46,6 +46,9 @@ import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
+import br.com.simplepass.loadingbutton.customViews.CircularProgressButton;
+import br.com.simplepass.loadingbutton.customViews.CircularProgressImageButton;
+
 
 public class MainActivity extends AppCompatActivity  implements View.OnClickListener, GoogleApiClient.OnConnectionFailedListener {
     //gui
@@ -54,6 +57,8 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
     private TextView emailDisp, output;
     private FloatingActionButton searchButton;
     private EditText input;
+    private CircularProgressButton circ;
+
     //google
     private GoogleApiClient googleApiClient;
     private GoogleSignInClient googleSignInClient;
@@ -78,14 +83,16 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        circ = (CircularProgressButton)findViewById(R.id.fancyButton);
+
         layoutCompat = (LinearLayout)findViewById(R.id.layout);
         signInButton = (SignInButton)findViewById(R.id.login);
         emailDisp = (TextView)findViewById(R.id.name);
         emailDisp.setText(R.string.pre_signin);
         output = (TextView)findViewById(R.id.output);
         output.setMovementMethod(new ScrollingMovementMethod());
-        searchButton = (FloatingActionButton)findViewById(R.id.floatingActionButton);
-        searchButton.setVisibility(View.GONE);
+        //searchButton = (FloatingActionButton)findViewById(R.id.floatingActionButton);
+        //searchButton.setVisibility(View.GONE);
         input = (EditText)findViewById(R.id.edit_text);
         input.setVisibility(View.GONE);
 
@@ -141,7 +148,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             case R.id.login:
                 signIn();
                 break;
-            case R.id.floatingActionButton:
+            /*case R.id.floatingActionButton:
                 if (isLoggedIn){
                     //searchButton.setVisibility(View.GONE);
                     output.setText("Working!");
@@ -153,6 +160,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                     new Networker(account.getAccount(),trustedDomains).execute();
                     searchButton.setClickable(false);
                 }
+                */
 
         }
 

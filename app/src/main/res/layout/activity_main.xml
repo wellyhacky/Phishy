@@ -48,7 +48,13 @@
                 android:inputType="textMultiLine"
                 android:lines="5" />
         </android.support.design.widget.TextInputLayout>
+        <br.com.simplepass.loadingbutton.customViews.CircularProgressButton
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/fancyButton"
 
+            />
+        <!--
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/floatingActionButton"
             android:layout_width="100dp"
@@ -56,7 +62,7 @@
             android:clickable="true"
             app:backgroundTint="@color/colorPrimary"
             app:srcCompat="@drawable/ic_search_white_24dp" />
-
+         -->
         <TextView
             android:id="@+id/output"
             android:layout_width="match_parent"
