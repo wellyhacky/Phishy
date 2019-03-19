@@ -41,7 +41,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import  org.apache.commons.codec.language.Soundex;
+import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 
 public class MainActivity extends AppCompatActivity  implements View.OnClickListener, GoogleApiClient.OnConnectionFailedListener {
@@ -225,7 +227,8 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         HashMap<String,String> domains;
         List<String> trustedDomains;
         HashMap<String,String> untrustedDomains;
-        int threshold = 2;
+        //below this in differences between words.
+        int thresholdLD = 5;
         Soundex soundex = new Soundex();
 
         String phishDomains = "";
@@ -286,6 +289,8 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 }
                 //for loop exits, list domains holds Ids as key and domains as value
                 String domainStr;
+                //distance checker
+                LevenshteinDistance ld = new LevenshteinDistance(thresholdLD);
                 for(Map.Entry<String,String> domainEntry :domains.entrySet()){
                     //compare every trusted domain with each domain from first set of inbox
                     domainStr = domainEntry.getValue();
@@ -296,14 +301,19 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
                             break;
                         }
+                        /*
                         Log.d("GMAIL",domainStr);
                         Log.d("TRUSTED", d);
                         Log.d("SOUNDEX",Integer.toString(soundex.difference(d,domainStr)));
-                        //soundex.difference checks how similar words are to eachother, 0 to 4. almost everything gets a 1 or 2.
-                        if(soundex.difference(d,domainStr)>threshold){
+                        Log.d("DIF", Integer.toString(org.apache.commons.lang3.StringUtils.compare(d,domainStr)));
+                        Log.d("LD",Integer.toString(ld.apply(d,domainStr)));
+                        */
+
+                        if(ld.apply(d,domainStr)>-1){
                             untrustedDomains.put(domainEntry.getKey(),domainEntry.getValue());
                             phishDomains= phishDomains+domainEntry.getValue()+"\n";
                         }
+
 
                     }
                 }
