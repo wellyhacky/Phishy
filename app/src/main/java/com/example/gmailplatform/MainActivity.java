@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -82,6 +83,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         emailDisp = (TextView)findViewById(R.id.name);
         emailDisp.setText(R.string.pre_signin);
         output = (TextView)findViewById(R.id.output);
+        output.setMovementMethod(new ScrollingMovementMethod());
         searchButton = (FloatingActionButton)findViewById(R.id.floatingActionButton);
         searchButton.setVisibility(View.GONE);
         input = (EditText)findViewById(R.id.edit_text);
@@ -141,13 +143,15 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 break;
             case R.id.floatingActionButton:
                 if (isLoggedIn){
-                    searchButton.setVisibility(View.GONE);
+                    //searchButton.setVisibility(View.GONE);
                     output.setText("Working!");
-                    String[] inputTrusted = input.getText().toString().toLowerCase().split("/n");
+                    String[] inputTrusted = input.getText().toString().toLowerCase().split("\n");
                     for(String s:inputTrusted){
                         trustedDomains.add(s);
+                        Log.d("TRUSTED",s);
                     }
                     new Networker(account.getAccount(),trustedDomains).execute();
+                    searchButton.setClickable(false);
                 }
 
         }
@@ -200,7 +204,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
     }
     private void updateUI(boolean isLoggedIn){
         if (isLoggedIn){
-            signInButton.setVisibility(View.GONE);
+            //signInButton.setVisibility(View.GONE);
 
             Log.d("STATE","IS LOGGED IN");
             emailDisp.setText(account.getDisplayName());
@@ -221,6 +225,10 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
     //List<com.google.api.services.gmail.model.Message>
     private class Networker extends AsyncTask<Void, Void, String> {
+        //in nanos
+        long startTime;
+        //in seconds
+        double elapsedTime;
 
         Account mAccount;
         //List of domain strings
@@ -228,12 +236,13 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         List<String> trustedDomains;
         HashMap<String,String> untrustedDomains;
         //below this in differences between words.
-        int thresholdLD = 5;
+        int thresholdLD = 3;
         Soundex soundex = new Soundex();
 
         String phishDomains = "";
 
         public Networker(Account account,List<String> trustedDomains) {
+            startTime = System.nanoTime();
             Log.d(state, "constructor for async");
             mAccount = account;
             domains = new HashMap<>();
@@ -301,13 +310,15 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
                             break;
                         }
-                        /*
+
                         Log.d("GMAIL",domainStr);
+                        /*
                         Log.d("TRUSTED", d);
                         Log.d("SOUNDEX",Integer.toString(soundex.difference(d,domainStr)));
                         Log.d("DIF", Integer.toString(org.apache.commons.lang3.StringUtils.compare(d,domainStr)));
-                        Log.d("LD",Integer.toString(ld.apply(d,domainStr)));
                         */
+                        Log.d("LD",Integer.toString(ld.apply(d,domainStr)));
+
 
                         if(ld.apply(d,domainStr)>-1){
                             untrustedDomains.put(domainEntry.getKey(),domainEntry.getValue());
@@ -337,7 +348,12 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-            output.setText(phishDomains);
+            elapsedTime = (System.nanoTime()-startTime)/1000000000.0;//returns in seconds
+            String phishAndTime =phishDomains +"Retreived in: " +Double.toString(elapsedTime);
+            output.setText(phishAndTime);
+            searchButton.setClickable(true);
+            searchButton.setVisibility(View.VISIBLE);
+            untrustedDomains = new HashMap<>();
         }
     }
 
