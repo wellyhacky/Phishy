@@ -288,7 +288,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 for (com.google.api.services.gmail.model.Message message : messages) {
                     //actualMessage = service.users().messages().get("me", message.getId()).setFormat("metadata").execute();
                     actualMessage = service.users().messages().get("me", message.getId()).execute();
-
+                    //really testing if creds are ignored, don't mind me
                     if(actualMessage == null){
                         Log.e("error in 216", "message is null");
                     }
