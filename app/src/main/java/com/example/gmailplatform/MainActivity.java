@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.language.Soundex;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 
@@ -132,6 +131,14 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 signInButton.setVisibility(View.VISIBLE);
             }
 
+        }
+        if (acct.getAccount()!=null)
+        {
+            Log.d(state, "account is not null");
+            account = acct;
+            signInButton.setVisibility(View.GONE);
+            isLoggedIn = true;
+            updateUI(isLoggedIn);
         }
     }
 
@@ -229,6 +236,8 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         long startTime;
         //in seconds
         double elapsedTime;
+        //number of messages returned
+        long numReturned;
 
         Account mAccount;
         //List of domain strings
@@ -273,12 +282,15 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
                 ListMessagesResponse response = service.users().messages().list("me").execute();
                 messages = response.getMessages();
+                numReturned = response.getResultSizeEstimate();
                 Message actualMessage;
                 String[] fromFragments;
                 for (com.google.api.services.gmail.model.Message message : messages) {
+                    //actualMessage = service.users().messages().get("me", message.getId()).setFormat("metadata").execute();
                     actualMessage = service.users().messages().get("me", message.getId()).execute();
+
                     if(actualMessage == null){
-                        Log.e("error in 216", "messages are null");
+                        Log.e("error in 216", "message is null");
                     }
                     //actualMessage.get
                     for(MessagePartHeader header:actualMessage.getPayload().getHeaders()){
@@ -310,15 +322,13 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
                             break;
                         }
-
-                        Log.d("GMAIL",domainStr);
                         /*
+                        Log.d("GMAIL",domainStr);
                         Log.d("TRUSTED", d);
                         Log.d("SOUNDEX",Integer.toString(soundex.difference(d,domainStr)));
                         Log.d("DIF", Integer.toString(org.apache.commons.lang3.StringUtils.compare(d,domainStr)));
-                        */
                         Log.d("LD",Integer.toString(ld.apply(d,domainStr)));
-
+                        */
 
                         if(ld.apply(d,domainStr)>-1){
                             untrustedDomains.put(domainEntry.getKey(),domainEntry.getValue());
@@ -349,7 +359,8 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
             elapsedTime = (System.nanoTime()-startTime)/1000000000.0;//returns in seconds
-            String phishAndTime =phishDomains +"Retreived in: " +Double.toString(elapsedTime);
+            String phishAndTime = new StringBuilder(phishDomains)
+                    .append(numReturned).append(" messages scanned, retreived in: ").append(Double.toString(elapsedTime)).toString();
             output.setText(phishAndTime);
             searchButton.setClickable(true);
             searchButton.setVisibility(View.VISIBLE);
