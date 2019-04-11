@@ -9,8 +9,8 @@
     <LinearLayout
         android:id="@+id/layout"
         android:layout_width="318dp"
-        android:layout_height="600dp"
-        android:gravity="center_horizontal"
+        android:layout_height="match_parent"
+        android:gravity="top|center_horizontal"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -61,9 +61,9 @@
             android:id="@+id/output"
             android:layout_width="match_parent"
             android:layout_height="294dp"
+            android:scrollbars="vertical"
             android:text=""
-            android:textAlignment="center"
-            android:scrollbars="vertical"/>
+            android:textAlignment="center" />
 
     </LinearLayout>
 
