@@ -1,6 +1,7 @@
 package com.example.gmailplatform;
 
 import android.accounts.Account;
+import android.app.UiAutomation;
 import android.content.Intent;
 import android.os.AsyncTask;
 //import android.support.annotation.NonNull;
@@ -34,10 +35,15 @@ import com.google.api.services.gmail.GmailScopes;
 import com.google.api.services.gmail.model.ListMessagesResponse;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePartHeader;
+import com.google.api.services.gmail.model.*;
+
+
 //import com.google.api.services.people.v1.model.ListConnectionsResponse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,23 +128,14 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             {
                 Log.d(state, "account is not null");
                 account = acct;
-                signInButton.setVisibility(View.GONE);
                 isLoggedIn = true;
-                updateUI(isLoggedIn);
+                updateUI(UIState.isLoggedIn);
             }
 
             else{
-                signInButton.setVisibility(View.VISIBLE);
+                updateUI(UIState.notLoggedIn);
             }
 
-        }
-        if (acct.getAccount()!=null)
-        {
-            Log.d(state, "account is not null");
-            account = acct;
-            signInButton.setVisibility(View.GONE);
-            isLoggedIn = true;
-            updateUI(isLoggedIn);
         }
     }
 
@@ -151,14 +148,14 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             case R.id.floatingActionButton:
                 if (isLoggedIn){
                     //searchButton.setVisibility(View.GONE);
-                    output.setText("Working!");
                     String[] inputTrusted = input.getText().toString().toLowerCase().split("\n");
                     for(String s:inputTrusted){
                         trustedDomains.add(s);
                         Log.d("TRUSTED",s);
                     }
                     new Networker(account.getAccount(),trustedDomains).execute();
-                    searchButton.setClickable(false);
+                    updateUI(UIState.working);
+                    //searchButton.setClickable(false);
                 }
 
         }
@@ -196,32 +193,52 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             account = result.getResult(ApiException.class);
             if (account != null) {
                 // Signed in successfully, show authenticated UI.
-                isLoggedIn = true;
 
-                updateUI(isLoggedIn);
+                updateUI(UIState.isLoggedIn);
             }
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
             emailDisp.setText(e.toString());
-            isLoggedIn = false;
-            updateUI(false);
+            updateUI(UIState.notLoggedIn);
         }
 
     }
-    private void updateUI(boolean isLoggedIn){
-        if (isLoggedIn){
-            //signInButton.setVisibility(View.GONE);
+    enum UIState {
+        isLoggedIn,
+        notLoggedIn,
+        working,
+        done
 
-            Log.d("STATE","IS LOGGED IN");
-            emailDisp.setText(account.getDisplayName());
-            input.setVisibility(View.VISIBLE);
-            searchButton.setVisibility(View.VISIBLE);
-            //trustedDomains.add("welllngtonjags.org");
-            //trustedDomains.add("unsplosh.com");
-            //new Networker(account.getAccount(),trustedDomains).execute();
+    }
+    private void updateUI(UIState ui){
+        switch (ui) {
+            case isLoggedIn:
+                isLoggedIn = true;
+
+                signInButton.setVisibility(View.GONE);
+                Log.d("STATE", "IS LOGGED IN");
+                emailDisp.setText(account.getDisplayName());
+                input.setVisibility(View.VISIBLE);
+                searchButton.setVisibility(View.VISIBLE);
+                //trustedDomains.add("welllngtonjags.org");
+                //trustedDomains.add("unsplosh.com");
+                //new Networker(account.getAccount(),trustedDomains).execute();
+                break;
+            case notLoggedIn:
+                isLoggedIn = false;
+                signInButton.setVisibility(View.VISIBLE);
+                break;
+            case working:
+                searchButton.setVisibility(View.GONE);
+                output.setText("Working!");
+                break;
+            case done:
+                searchButton.setClickable(true);
+                searchButton.setVisibility(View.VISIBLE);
+                break;
+
         }
-
     }
 
 
@@ -280,19 +297,27 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 Log.d("GMAIL", "past service");
 
 
+                //ListMessagesResponse response = service.users().messages().list("me").setMaxResults((long)50).execute();
                 ListMessagesResponse response = service.users().messages().list("me").execute();
                 messages = response.getMessages();
                 numReturned = response.getResultSizeEstimate();
                 Message actualMessage;
                 String[] fromFragments;
                 for (com.google.api.services.gmail.model.Message message : messages) {
-                    //actualMessage = service.users().messages().get("me", message.getId()).setFormat("metadata").execute();
+                    List<String> from = Arrays.asList("From","Subject");
+                    //actualMessage = service.users().messages().get("me", message.getId())
+                    //       .setFormat("METADATA").setMetadataHeaders(from).execute();
                     actualMessage = service.users().messages().get("me", message.getId()).execute();
-                    //really testing if creds are ignored, don't mind me
                     if(actualMessage == null){
                         Log.e("error in 216", "message is null");
                     }
-                    //actualMessage.get
+                    //Log.d("GMAIL", actualMessage.toPrettyString());
+                    //MessagePartHeader fromHeader = actualMessage.getPayload().getHeaders().get(0);
+                    //fromFragments = fromHeader.getValue().split("@|>");
+                    //log and add just the domain
+                    //Log.d("GMAIL",fromFragments[1]);
+                    //domains.put(actualMessage.getId(),fromFragments[1]);
+
                     for(MessagePartHeader header:actualMessage.getPayload().getHeaders()){
                         if(header.getName().equals("From")){
                             //trim the from value we get down to just the email address domain.
@@ -305,6 +330,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                             break;
                         }
                     }
+
                     //Log.d("GMAIl",actualMessage.getPayload().getHeaders().get(17).getName());
 
                 }
@@ -362,8 +388,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             String phishAndTime = new StringBuilder(phishDomains)
                     .append(numReturned).append(" messages scanned, retreived in: ").append(Double.toString(elapsedTime)).toString();
             output.setText(phishAndTime);
-            searchButton.setClickable(true);
-            searchButton.setVisibility(View.VISIBLE);
+            updateUI(UIState.done);
             untrustedDomains = new HashMap<>();
         }
     }
