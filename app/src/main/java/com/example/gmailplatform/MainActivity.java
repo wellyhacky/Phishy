@@ -148,11 +148,12 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             case R.id.floatingActionButton:
                 if (isLoggedIn){
                     //searchButton.setVisibility(View.GONE);
+                    trustedDomains.clear();
                     String[] inputTrusted = input.getText().toString().toLowerCase().split("\n");
-                    for(String s:inputTrusted){
-                        trustedDomains.add(s);
-                        Log.d("TRUSTED",s);
-                    }
+
+                    trustedDomains.addAll(Arrays.asList(inputTrusted));
+                    Log.d("TRUSTED",inputTrusted.toString());
+
                     new Networker(account.getAccount(),trustedDomains).execute();
                     updateUI(UIState.working);
                     //searchButton.setClickable(false);
@@ -299,51 +300,39 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
                 ListMessagesResponse response = service.users().messages().list("me").setMaxResults((long)50).execute();
                 messages = response.getMessages();
+                Log.d("GMAIL","retrieved");
                 numReturned = response.getResultSizeEstimate();
                 Message actualMessage;
                 String[] fromFragments;
+                String domainStr;
+                LevenshteinDistance ld = new LevenshteinDistance(thresholdLD);
+                String messId;
+                //this is annoying - the id of the from header changes email to email when requesting more than one header.
+                int fromId = 0;
                 for (com.google.api.services.gmail.model.Message message : messages) {
-                    List<String> from = Arrays.asList("From","Subject");
+                    //List<String> neededHeaders = Arrays.asList("From","Subject");
+                    List<String> neededHeaders = Collections.singletonList("From");
+
                     actualMessage = service.users().messages().get("me", message.getId())
-                            .setFormat("METADATA").setMetadataHeaders(from).execute();
-                    //actualMessage = service.users().messages().get("me", message.getId()).execute();
+                            .setFormat("METADATA").setMetadataHeaders(neededHeaders).execute();
                     if(actualMessage == null){
                         Log.e("error in 216", "message is null");
                     }
                     //Log.d("GMAIL", actualMessage.toPrettyString());
-                    MessagePartHeader fromHeader = actualMessage.getPayload().getHeaders().get(0);
+
+                    MessagePartHeader fromHeader = actualMessage.getPayload().getHeaders().get(fromId);
                     fromFragments = fromHeader.getValue().split("@|>");
+
+                    messId = actualMessage.getId();
+
+                    domainStr = fromFragments[1];
                     //log and add just the domain
-                    //Log.d("GMAIL",fromFragments[1]);
-                    domains.put(actualMessage.getId(),fromFragments[1]);
-                    /*
-                    for(MessagePartHeader header:actualMessage.getPayload().getHeaders()){
-                        if(header.getName().equals("From")){
-                            //trim the from value we get down to just the email address domain.
-
-                            //splits it into fragments of the "From:" line, split around the domain
-                            fromFragments = header.getValue().split("@|>");
-                            //log and add just the domain
-                            //Log.d("GMAIL",fromFragments[1]);
-                            domains.put(actualMessage.getId(),fromFragments[1]);
-                            break;
-                        }
-                    }
-                    */
-                    //Log.d("GMAIl",actualMessage.getPayload().getHeaders().get(17).getName());
-
-                }
-                //for loop exits, list domains holds Ids as key and domains as value
-                String domainStr;
-                //distance checker
-                LevenshteinDistance ld = new LevenshteinDistance(thresholdLD);
-                for(Map.Entry<String,String> domainEntry :domains.entrySet()){
-                    //compare every trusted domain with each domain from first set of inbox
-                    domainStr = domainEntry.getValue();
+                    //Log.d("GMAIL",domainStr);
+                    domains.put(messId,domainStr);
                     for(String d:trustedDomains) {
                         //if exactly the same, stop scanning and take off untrusted list, if similar, put on untrusted list
                         if(d.equals(domainStr)){
-                            untrustedDomains.remove(domainEntry.getKey());
+                            untrustedDomains.remove(messId);
 
                             break;
                         }
@@ -356,13 +345,47 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                         */
 
                         if(ld.apply(d,domainStr)>-1){
+                            untrustedDomains.put(messId,domainStr);
+                            phishDomains= phishDomains+domainStr+"\n";
+                        }
+
+
+                    }
+                    //Log.d("GMAIl",actualMessage.getPayload().getHeaders().get(17).getName());
+
+                }
+                //for loop exits, list domains holds Ids as key and domains as value
+                //String domainStr;
+                //distance checker
+                //LevenshteinDistance ld = new LevenshteinDistance(thresholdLD);
+                /*
+                for(Map.Entry<String,String> domainEntry :domains.entrySet()){
+                    //compare every trusted domain with each domain from first set of inbox
+                    domainStr = domainEntry.getValue();
+                    for(String d:trustedDomains) {
+                        //if exactly the same, stop scanning and take off untrusted list, if similar, put on untrusted list
+                        if(d.equals(domainStr)){
+                            untrustedDomains.remove(domainEntry.getKey());
+
+                            break;
+                        }
+
+//                        Log.d("GMAIL",domainStr);
+//                        Log.d("TRUSTED", d);
+//                        Log.d("SOUNDEX",Integer.toString(soundex.difference(d,domainStr)));
+//                        Log.d("DIF", Integer.toString(org.apache.commons.lang3.StringUtils.compare(d,domainStr)));
+//                        Log.d("LD",Integer.toString(ld.apply(d,domainStr)));
+
+
+                        if(ld.apply(d,domainStr)>-1){
                             untrustedDomains.put(domainEntry.getKey(),domainEntry.getValue());
                             phishDomains= phishDomains+domainEntry.getValue()+"\n";
                         }
 
 
                     }
-                }
+                }*/
+
                 //output the messages from and subject lines
 
             } catch (UserRecoverableAuthIOException e) {
@@ -370,6 +393,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 // Other non-recoverable exceptions.
             } catch (Exception e){
                 Log.e("Error","Error In Async:",e);
+                phishDomains = "There was an error! (sorry)\n";
 
             }
             return phishDomains;
@@ -384,11 +408,13 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
             elapsedTime = (System.nanoTime()-startTime)/1000000000.0;//returns in seconds
-            String phishAndTime = new StringBuilder(phishDomains)
+            String phishAndTime = new StringBuilder(s)
                     .append(numReturned).append(" messages scanned, retreived in: ").append(Double.toString(elapsedTime)).toString();
             output.setText(phishAndTime);
             updateUI(UIState.done);
             untrustedDomains = new HashMap<>();
+            phishDomains = "";
+            return;
         }
     }
 
