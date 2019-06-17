@@ -354,40 +354,6 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                     //Log.d("GMAIl",actualMessage.getPayload().getHeaders().get(17).getName());
 
                 }
-                //for loop exits, list domains holds Ids as key and domains as value
-                //String domainStr;
-                //distance checker
-                //LevenshteinDistance ld = new LevenshteinDistance(thresholdLD);
-                /*
-                for(Map.Entry<String,String> domainEntry :domains.entrySet()){
-                    //compare every trusted domain with each domain from first set of inbox
-                    domainStr = domainEntry.getValue();
-                    for(String d:trustedDomains) {
-                        //if exactly the same, stop scanning and take off untrusted list, if similar, put on untrusted list
-                        if(d.equals(domainStr)){
-                            untrustedDomains.remove(domainEntry.getKey());
-
-                            break;
-                        }
-
-//                        Log.d("GMAIL",domainStr);
-//                        Log.d("TRUSTED", d);
-//                        Log.d("SOUNDEX",Integer.toString(soundex.difference(d,domainStr)));
-//                        Log.d("DIF", Integer.toString(org.apache.commons.lang3.StringUtils.compare(d,domainStr)));
-//                        Log.d("LD",Integer.toString(ld.apply(d,domainStr)));
-
-
-                        if(ld.apply(d,domainStr)>-1){
-                            untrustedDomains.put(domainEntry.getKey(),domainEntry.getValue());
-                            phishDomains= phishDomains+domainEntry.getValue()+"\n";
-                        }
-
-
-                    }
-                }*/
-
-                //output the messages from and subject lines
-
             } catch (UserRecoverableAuthIOException e) {
                 startActivityForResult(e.getIntent(), REQUEST_AUTH);
                 // Other non-recoverable exceptions.
